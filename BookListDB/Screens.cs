@@ -104,10 +104,6 @@ namespace BookListDB
             AddScreen(cmd);
             screen[currentScreensId].Filter(field, query);
         }
-        public void ConvertKobo(string inputFile)
-        {
-            screen[currentScreensId].ConvertKobo(inputFile);
-        }
         public void Import(string inputFile)
         {
             screen[currentScreensId].Import(inputFile);
@@ -192,6 +188,10 @@ namespace BookListDB
         public void DisplayCounts(FieldType field)
         {
             screen[currentScreensId].DisplayCounts(field);
+        }
+        public void DisplayVersion()
+        {
+            screen[currentScreensId].DisplayVersion();
         }
     }
 }

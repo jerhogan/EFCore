@@ -411,4 +411,19 @@ namespace BookListDB
 			return ("Command DisplayCounts()");
 		}
 	}
+	public class DisplayVersionCommand : Command
+	{
+		public DisplayVersionCommand()
+		{
+		}
+		override public bool Apply()
+		{
+			Commands.screens.DisplayVersion();
+			return (true);
+		}
+		override public string Display()
+		{
+			return ("Command DisplayVersion()");
+		}
+	}
 }

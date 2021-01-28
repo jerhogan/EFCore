@@ -4,6 +4,7 @@ using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Mail;
+using System.Reflection;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -32,6 +33,7 @@ namespace BookListDB
         const string JHOutputBookListKindleFile = "JH Book List File Kindle Output.txt";
         const string JHOutputBookListKoboFile = "JH Book List File Kobo Output.txt";
         const string JHOutputBookListGoodReadsFile = "JH Book List File Good Reads Output.txt";
+        const string JHOutputBookListWishListFile = "JH Book List File Wish List Output.txt";
         public int inputFileLength = 0;
         public int startCmdNoBooks = 0;
 
@@ -494,6 +496,8 @@ namespace BookListDB
                 ConvertKobo(inputFile);
             else if (bookType == "BT_GOOD_READS")
                 ConvertGoodReads(inputFile);
+            else if (bookType == "BT_WISH_LIST")
+                ConvertWishList(inputFile);
         }
         public void ConvertKindle(string inputFile)
         {
@@ -655,7 +659,7 @@ namespace BookListDB
                     for (j = startNumber[i] + 2; j < endNumber[i]; ++j)
                         outputLine += " " + linesList[j];
 
-                    read = false; // dwfault value
+                    read = false; // default value
                     int subIndex, finishedSubIndex;
                     subIndex = linesList[endNumber[i]].Length - 6;
                     finishedSubIndex = subIndex - 2;
@@ -767,7 +771,7 @@ namespace BookListDB
 
                     outputLine = linesList[startNumber[i]] + " " + linesList[startNumber[i] + 2];
 
-                    read = false; // dwfault value
+                    read = false; // default value
                     for (j = startNumber[i] + 3; j < endNumber[i]; ++j)
                         if (linesList[j] == "read")
                             read = true;
@@ -791,6 +795,151 @@ namespace BookListDB
                 outputLines = outputLinesList.ToArray();
                 File.WriteAllLines(JHOutputBookListGoodReadsFile, outputLines);
             }
+        }
+        public void ConvertWishList(string inputFile)
+        {
+            if (!File.Exists(inputFile))
+            {
+                Logger.OutputError("Web Page File {0} does not exist", inputFile);
+            }
+            else
+            {
+                int i, j;
+                bool delString;
+                List<string> linesList;
+                List<string> outputLinesList;
+                string[] outputLines;
+                List<int> startNumber = new List<int>();
+                List<int> endNumber = new List<int>();
+                bool read;
+
+                var lines = File.ReadAllLines(inputFile);
+                linesList = lines.ToList();
+
+                // Delete all before "Filter & Sort"
+                delString = false;
+                for (i = linesList.Count - 1; i >= 0; --i)
+                {
+                    if (linesList[i] == "Filter & Sort")
+                        delString = true;
+                    if (delString)
+                        linesList.RemoveAt(i);
+                }
+
+                // Delete all after "End of list"
+                delString = false;
+                for (i = 0; i < linesList.Count; ++i)
+                {
+                    if (linesList[i] == "End of list")
+                        delString = true;
+                    if (delString)
+                    {
+                        for (j = linesList.Count - 1; j >= i; --j)
+                            linesList.RemoveAt(j);
+                    }
+                }
+
+                linesList.RemoveAll(l => l.Equals(""));
+
+                // Go through linesList and determine the start and ends of each output line
+                for (i = 1; i < linesList.Count; ++i)
+                {
+                    // if  cosecutive lines the same ignoring white space
+                    if (Regex.Replace(linesList[i], @"\s+", "") ==
+                        Regex.Replace(linesList[i - 1], @"\s+", ""))
+                    {
+                        if (i - 2 >= 0)
+                            endNumber.Add(i - 2);
+                        startNumber.Add(i - 1);
+                    }
+                }
+                endNumber.Add(i - 1);
+
+                Boolean isAudioCD;
+
+                outputLinesList = new List<string>();
+                for (i = 0; i < startNumber.Count; ++i)
+                {
+                    string outputLine;
+
+                    outputLine = linesList[startNumber[i]];
+                    isAudioCD = outputLine.IndexOf("(Audio CD)") != -1;
+                    outputLine = ConvertWishListTitle(outputLine);
+                    outputLine += " " + ConvertWishListAuthor (linesList[startNumber[i] + 2]);
+
+                    read = false; // default value
+
+                    // get username
+                    string userName;
+                    User user = _context.Users.FirstOrDefault(u => u.UserId == Login.currentUserId);
+                    if (user == null)
+                        userName = "jerhogan";
+                    else
+                        userName = user.UserName;
+
+                    string addString;
+                    addString = "," + userName + ",BT_WISH_LIST," + read.ToString() + ",<tag-place-holder>";
+
+                    outputLine = outputLine.Replace(",", ";");
+                    outputLine += addString;
+                    if ((outputLine.IndexOf ("[DVD]") == -1) && !isAudioCD) // If it's not a DVD or a CD then add
+                        outputLinesList.Add(outputLine);
+                }
+
+                outputLines = outputLinesList.ToArray();
+                File.WriteAllLines(JHOutputBookListWishListFile, outputLines);
+            }
+        }
+        private string ConvertWishListTitle(string originalTitle)
+        {
+            string processedTitle;
+
+            processedTitle = RemoveParenthesisBlock (originalTitle);
+            processedTitle.Replace(",", ";");
+            return (processedTitle.Trim());
+        }
+        private string RemoveParenthesisBlock(string originalString)
+        {
+            string processed;
+            int lParPos, rParPos;
+
+            processed = originalString;
+            lParPos = processed.IndexOf("(");
+            rParPos = processed.LastIndexOf(")");
+            if ((lParPos != -1) && (rParPos != -1))
+            {
+                string newString = "";
+
+                if (lParPos != 0)
+                    newString = processed.Substring(0, lParPos);
+
+                if (rParPos != processed.Length - 1)
+                    newString += processed.Substring(rParPos + 1);
+
+                processed = newString;
+            }
+
+            return (processed.Trim());
+        }
+        private string ConvertWishListAuthor(string originalAuthor)
+        {
+            string processed;
+
+            processed = RemoveParenthesisBlock(originalAuthor);
+            processed.Replace(",", ";");
+            processed = RemoveByWord(processed);
+            return (processed);
+        }
+        private string RemoveByWord(string originalString)
+        {
+            string processed;
+
+            processed = originalString;
+
+            if (processed.IndexOf("by ") == 0)
+                processed = processed.Substring(3);
+
+            return (processed);
         }
         public void Import(string inputFile)
         {
@@ -1807,6 +1956,11 @@ namespace BookListDB
                 Logger.OutputInformation("User " + uGroup.UserName + "(" +
                     uGroup.Count + ")");
             }
+        }
+        public void DisplayVersion()
+        {
+            Console.WriteLine("Software Version {0}", Assembly.GetExecutingAssembly().GetName().Version);
+            RefreshScreenIds();
         }
     }
     class Result

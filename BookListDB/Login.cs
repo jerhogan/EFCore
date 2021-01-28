@@ -29,6 +29,35 @@ namespace BookListDB
             return (ret_value);
         }
 
+        public static string ReadPasswordLine(string prompt)
+        {
+            Console.Write("Please enter " + prompt + ":");
+            string pass = "";
+            ConsoleKeyInfo key;
+            do
+            {
+                key = Console.ReadKey(true);
+                if (key.Key != ConsoleKey.Enter)
+                {
+                    if (!(key.KeyChar < ' '))
+                    {
+                        pass += key.KeyChar;
+                        Console.Write("*");
+                    }
+                    else if (key.Key == ConsoleKey.Backspace && pass.Length > 0)
+                    {
+                        Console.Write(Convert.ToChar(ConsoleKey.Backspace));
+                        pass = pass.Remove(pass.Length - 1);
+                        Console.Write(" ");
+                        Console.Write(Convert.ToChar(ConsoleKey.Backspace));
+                    }
+                }
+            } while (key.Key != ConsoleKey.Enter);
+            
+            Console.WriteLine();
+
+            return pass;
+        }
         public static void SetContext(BookListContext context)
         {
             Commands.SetContext(context);
@@ -48,7 +77,7 @@ namespace BookListDB
             {
                 Logger.OutputInformation("Please Log-in.");
                 username = GetConsoleString("user name");
-                password = GetConsoleString("password");
+                password = ReadPasswordLine ("password");
                 encrypted = Encode_Decode.Encrypt(password);
                 /*                string decrypted = Encode_Decode.Decrypt(encrypted);
                                 Console.WriteLine("password = " + password + " encrypted = " + encrypted + " decrypted = " + decrypted);*/
@@ -74,7 +103,7 @@ namespace BookListDB
             FirstName = GetConsoleString("First Name");
             MiddleName = GetConsoleString("Middle Name");
             Surname = GetConsoleString("Surname");
-            Password = GetConsoleString("Password");
+            Password = ReadPasswordLine("Password");
             UserName = GetConsoleString("User Name");
             Email = GetConsoleString("Email");
             Encrypted = Encode_Decode.Encrypt(Password);
@@ -108,11 +137,11 @@ namespace BookListDB
             Logger.OutputInformation("Please Change User Password.");
 
             userName = GetConsoleString("User Name");
-            password = GetConsoleString("Old Password");
+            password = ReadPasswordLine("Old Password");
             encryptedPassword = Encode_Decode.Encrypt(password);
-            newPassword = GetConsoleString("New Password");
+            newPassword = ReadPasswordLine("New Password");
             newEncryptedPassword = Encode_Decode.Encrypt(newPassword);
-            repeatPassword = GetConsoleString("Repeat New Password");
+            repeatPassword = ReadPasswordLine("Repeat New Password");
             repeatEncryptedPassword = Encode_Decode.Encrypt(repeatPassword);
 
             ChangeUserPasswordCommand c = new ChangeUserPasswordCommand(userName, 
@@ -288,7 +317,7 @@ namespace BookListDB
             Commands.Add(c);
             _Screens.DisplayBooksScreen();
         }
-        public static void Convert()
+        public static void ConvertWebPage()
         {
             string inputFile;
             string readerType;
@@ -297,7 +326,7 @@ namespace BookListDB
             Logger.OutputInformation("Please Convert Web Page File to Import File for Database.");
             inputFile = GetConsoleString("Input Web Page File Name");
 
-            readerType = GetConsoleString("Convert ((A)mazon Kindle, Rakuten (K)obo or (G)oodReads");
+            readerType = GetConsoleString("Convert ((A)mazon Kindle, Rakuten (K)obo, (W)ishlist or (G)oodReads");
             if (readerType.Length > 0)
             {
                 switch (readerType.ToUpper()[0])
@@ -312,6 +341,10 @@ namespace BookListDB
 
                     case 'G':
                         bookTypeString = "BT_GOOD_READS";
+                        break;
+
+                    case 'W':
+                        bookTypeString = "BT_WISH_LIST";
                         break;
 
                     default:
@@ -538,6 +571,14 @@ namespace BookListDB
             }
 
             DisplayCountsCommand c = new DisplayCountsCommand(fieldType);
+            c.Apply();
+            Commands.Add(c);
+        }
+        static public void DisplayVersion()
+        {
+            Logger.OutputInformation("Please Display the Software Version.");
+
+            DisplayVersionCommand c = new DisplayVersionCommand();
             c.Apply();
             Commands.Add(c);
         }

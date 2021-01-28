@@ -89,7 +89,7 @@ namespace BookListDB
                             break;
 
                         case 'V':
-                            Login.Convert();
+                            Login.ConvertWebPage();
                             break;
 
                         case 'I':
@@ -124,6 +124,10 @@ namespace BookListDB
                             Login.DisplayCounts();
                             break;
 
+                        case 'M':
+                            Login.DisplayVersion();
+                            break;
+
                         case '?':
                             Logger.OutputInformation ("(R)egister");
                             Logger.OutputInformation("(L)ogin");
@@ -147,6 +151,7 @@ namespace BookListDB
                             Logger.OutputInformation("upda(T)e book");
                             Logger.OutputInformation("Fill in (*) empty tags");
                             Logger.OutputInformation("(#) Counts");
+                            Logger.OutputInformation("(M)ajor/Minor Version Number");
                             Logger.OutputInformation("(?) Help");
                             Logger.OutputInformation("(Q)uit");
                                 break;

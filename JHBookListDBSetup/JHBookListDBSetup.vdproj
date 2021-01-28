@@ -1340,6 +1340,14 @@
             "PrerequisitesLocation" = "2:1"
             "Url" = "8:"
             "ComponentsUrl" = "8:"
+                "Items"
+                {
+                    "{EDC2488A-8267-493A-A98E-7D9C3B36CDF3}:.NETFramework,Version=v4.7.2"
+                    {
+                    "Name" = "8:Microsoft .NET Framework 4.7.2 (x86 and x64)"
+                    "ProductCode" = "8:.NETFramework,Version=v4.7.2"
+                    }
+                }
             }
         }
         "Release"
@@ -2997,21 +3005,21 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:JHBookListDBSetup"
-        "ProductCode" = "8:{7C8E5352-5D52-4C09-8F1D-8A4C7BECEE62}"
-        "PackageCode" = "8:{D6811B5A-1106-45BE-8D71-11109E78DA6C}"
+        "ProductCode" = "8:{00369E97-F956-4A33-A151-CFDF97D1C5CE}"
+        "PackageCode" = "8:{D98AE0D0-8780-4BDB-B034-296B863A340E}"
         "UpgradeCode" = "8:{8F570E57-831D-4B59-812A-F9DF7BD18029}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:FALSE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:1.00.0001"
-        "Manufacturer" = "8:HP Inc."
+        "ProductVersion" = "8:1.00.0002"
+        "Manufacturer" = "8:JH Inc."
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
         "Title" = "8:JHBookListDBSetup"
         "Subject" = "8:"
-        "ARPCONTACT" = "8:HP Inc."
+        "ARPCONTACT" = "8:JH Inc."
         "Keywords" = "8:"
         "ARPCOMMENTS" = "8:"
         "ARPURLINFOABOUT" = "8:"
@@ -3533,7 +3541,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_90EC9F546476469F9F216488908DA81C"
             {
-            "SourcePath" = "8:..\\BookListDB\\obj\\Release\\BookListDB.exe"
+            "SourcePath" = "8:..\\BookListDB\\obj\\Debug\\BookListDB.exe"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_2C02795E9F3242D785D3A8D5EE0C385B"
