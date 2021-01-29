@@ -531,38 +531,39 @@ namespace BookListDB
             Logger.OutputInformation("Please Display Counts in Database.");
 
             string bookFieldType;
-            FieldType fieldType = FieldType.fAuthor;
+            FieldType fieldType1 = FieldType.fAuthor;
+            FieldType fieldType2 = FieldType.fBookType;
 
             do
             {
-                bookFieldType = GetConsoleString("(A)uthor, (T)ag, (B)ook Type, (U)ser, (R)eador (*)all");
+                bookFieldType = GetConsoleString("(A)uthor, (T)ag, (B)ook Type, (U)ser, (R)ead or (*)all");
             } while (bookFieldType.ToUpper()[0] != 'A' && bookFieldType.ToUpper()[0] != 'T' &&
                      bookFieldType.ToUpper()[0] != 'B' && bookFieldType.ToUpper()[0] != 'U' &&
                      bookFieldType.ToUpper()[0] != 'R' && bookFieldType.ToUpper()[0] != '*');
             switch (bookFieldType.ToUpper()[0])
             {
                 case 'A':
-                    fieldType = FieldType.fAuthor;
+                    fieldType1 = FieldType.fAuthor;
                     break;
 
                 case 'T':
-                    fieldType = FieldType.fTag;
+                    fieldType1 = FieldType.fTag;
                     break;
 
                 case 'B':
-                    fieldType = FieldType.fBookType;
+                    fieldType1 = FieldType.fBookType;
                     break;
 
                 case 'U':
-                    fieldType = FieldType.fUser;
+                    fieldType1 = FieldType.fUser;
                     break;
 
                 case 'R':
-                    fieldType = FieldType.fRead;
+                    fieldType1 = FieldType.fRead;
                     break;
 
                 case '*':
-                    fieldType = FieldType.fAll;
+                    fieldType1 = FieldType.fAll;
                     break;
 
                 default:
@@ -570,7 +571,35 @@ namespace BookListDB
                     break;
             }
 
-            DisplayCountsCommand c = new DisplayCountsCommand(fieldType);
+            do
+            {
+                bookFieldType = GetConsoleString("Second (B)ook Type, (R)ead, (N)one or (*)all");
+            } while (bookFieldType.ToUpper()[0] != 'B' && bookFieldType.ToUpper()[0] != 'R' &&
+                     bookFieldType.ToUpper()[0] != 'N' && bookFieldType.ToUpper()[0] != '*');
+            switch (bookFieldType.ToUpper()[0])
+            {
+                case 'B':
+                    fieldType2 = FieldType.fBookType;
+                    break;
+
+                case 'R':
+                    fieldType2 = FieldType.fRead;
+                    break;
+
+                case 'N':
+                    fieldType2 = FieldType.fNone;
+                    break;
+
+                case '*':
+                    fieldType2 = FieldType.fAll;
+                    break;
+
+                default:
+                    // Ignore
+                    break;
+            }
+
+            DisplayCountsCommand c = new DisplayCountsCommand(fieldType1, fieldType2);
             c.Apply();
             Commands.Add(c);
         }

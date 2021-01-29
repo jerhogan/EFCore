@@ -31,6 +31,8 @@ namespace BookListDB
 //        public Screens _screens;
         public int _index;
 		public FieldType field;
+		public FieldType field1;
+		public FieldType field2;
 		public OrderType order;
 		public string query;
 		public string bookType;
@@ -397,13 +399,14 @@ namespace BookListDB
 	}
 	public class DisplayCountsCommand : Command
 	{
-		public DisplayCountsCommand(FieldType field)
+		public DisplayCountsCommand(FieldType field1, FieldType field2)
 		{
-			this.field = field;
+			this.field1 = field1;
+			this.field2 = field2;
 		}
 		override public bool Apply()
 		{
-			Commands.screens.DisplayCounts(field);
+			Commands.screens.DisplayCounts(field1, field2);
 			return (true);
 		}
 		override public string Display()

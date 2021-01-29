@@ -15,7 +15,7 @@ namespace BookListDB
 {
     public enum FieldType
     {
-        fAll, fAuthor, fIndex, fTag, fTitle, fUser, fBookType, fRead
+        fNone, fAll, fAuthor, fIndex, fTag, fTitle, fUser, fBookType, fRead
     };
     public enum OrderType
     {
@@ -1811,33 +1811,85 @@ namespace BookListDB
 
             return (tagValues);
         }
-        public void DisplayCounts(FieldType fieldType)
+        public void DisplayCounts(FieldType fieldType1, FieldType fieldType2)
         {
-            switch (fieldType)
+            if (fieldType2 == FieldType.fNone)
             {
-                case FieldType.fAuthor:
-                    DisplayCountsAuthors();
-                    break;
-                case FieldType.fTag:
-                    DisplayCountsTags();
-                    break;
-                case FieldType.fBookType:
-                    DisplayCountsBookTypes();
-                    break;
-                case FieldType.fRead:
-                    DisplayCountsReads();
-                    break;
-                case FieldType.fUser:
-                    DisplayCountsUsers();
-                    break;
-                case FieldType.fAll:
-                    DisplayCountsAuthors();
-                    DisplayCountsTags();
-                    DisplayCountsBookTypes();
-                    DisplayCountsReads();
-                    DisplayCountsUsers();
-                    break;
+                switch (fieldType1)
+                {
+                    case FieldType.fAuthor:
+                        DisplayCountsAuthors();
+                        break;
+                    case FieldType.fTag:
+                        DisplayCountsTags();
+                        break;
+                    case FieldType.fBookType:
+                        DisplayCountsBookTypes();
+                        break;
+                    case FieldType.fRead:
+                        DisplayCountsReads();
+                        break;
+                    case FieldType.fUser:
+                        DisplayCountsUsers();
+                        break;
+                    case FieldType.fAll:
+                        DisplayCountsAuthors();
+                        DisplayCountsTags();
+                        DisplayCountsBookTypes();
+                        DisplayCountsReads();
+                        DisplayCountsUsers();
+                        break;
+                }
             }
+            else if (fieldType2 == FieldType.fBookType)
+            {
+                switch (fieldType1)
+                {
+                    case FieldType.fAuthor:
+                        DisplayCountsAuthorsBookTypes();
+                        break;
+                    case FieldType.fTag:
+                        DisplayCountsTagsBookTypes();
+                        break;
+                    case FieldType.fRead:
+                        DisplayCountsReadsBookTypes();
+                        break;
+                    case FieldType.fUser:
+                        DisplayCountsUsersBookTypes();
+                        break;
+                    case FieldType.fAll:
+                        DisplayCountsAuthorsBookTypes();
+                        DisplayCountsTagsBookTypes();
+                        DisplayCountsReadsBookTypes();
+                        DisplayCountsUsersBookTypes();
+                        break;
+                }
+            }
+            else if (fieldType2 == FieldType.fRead)
+            {
+                switch (fieldType1)
+                {
+                    case FieldType.fAuthor:
+                        DisplayCountsAuthorsReads();
+                        break;
+                    case FieldType.fTag:
+                        DisplayCountsTagsReads();
+                        break;
+                    case FieldType.fBookType:
+                        DisplayCountsBookTypesReads();
+                        break;
+                    case FieldType.fUser:
+                        DisplayCountsUsersReads();
+                        break;
+                    case FieldType.fAll:
+                        DisplayCountsAuthorsReads();
+                        DisplayCountsTagsReads();
+                        DisplayCountsBookTypesReads();
+                        DisplayCountsUsersReads();
+                        break;
+                }
+            }
+
             RefreshScreenIds();
         }
         void DisplayCountsAuthors()
@@ -1866,6 +1918,82 @@ namespace BookListDB
                 }
             }
         }
+        public struct AuthorBookType
+        {
+            public string authorName;
+            public string bookTypeName;
+        }
+        void DisplayCountsAuthorsBookTypes()
+        {
+            List<AuthorBookType> authorBookTypeList = new List<AuthorBookType>();
+
+            foreach (Author author in _context.Authors)
+            {
+                Book book = _context.Books.FirstOrDefault(b => b.BookId ==
+                    author.BookId);
+                if (book.UserId == Login.currentUserId)
+                {
+                    AuthorBookType abt = new AuthorBookType();
+
+                    abt.authorName = author.Name;
+                    BookType bookType = _context.BookTypes.FirstOrDefault(b => b.BookTypeId ==
+                    book.BookTypeId);
+                    abt.bookTypeName = bookType.BK_TYPE;
+                    authorBookTypeList.Add(abt);
+                }
+            }
+            var groups = authorBookTypeList
+                .GroupBy(ab => new { ab.authorName, ab.bookTypeName })
+                .Select(g => new
+                {
+                    AuthorName = g.Key.authorName,
+                    BookTypeName = g.Key.bookTypeName,
+                    Count = g.Count()
+                });
+            var orderedGroups = groups.OrderByDescending(ab => ab.Count);
+            foreach (var authGroup in orderedGroups)
+            {
+                Logger.OutputInformation("Book type " + authGroup.BookTypeName + " Author " + authGroup.AuthorName + "(" +
+                    authGroup.Count + ")");
+            }
+        }
+        public struct AuthorRead
+        {
+            public string authorName;
+            public Boolean read;
+        }
+        void DisplayCountsAuthorsReads()
+        {
+            List<AuthorRead> authorReadList = new List<AuthorRead>();
+
+            foreach (Author author in _context.Authors)
+            {
+                Book book = _context.Books.FirstOrDefault(b => b.BookId ==
+                    author.BookId);
+                if (book.UserId == Login.currentUserId)
+                {
+                    AuthorRead ar = new AuthorRead();
+
+                    ar.authorName = author.Name;
+                    ar.read = book.Read;
+                    authorReadList.Add(ar);
+                }
+            }
+            var groups = authorReadList
+                .GroupBy(ar => new { ar.authorName, ar.read })
+                .Select(g => new
+                {
+                    AuthorName = g.Key.authorName,
+                    Read = g.Key.read,
+                    Count = g.Count()
+                });
+            var orderedGroups = groups.OrderByDescending(ar => ar.Count);
+            foreach (var authGroup in orderedGroups)
+            {
+                Logger.OutputInformation("Read " + authGroup.Read.ToString() + " Author " + authGroup.AuthorName + "(" +
+                    authGroup.Count + ")");
+            }
+        }
         void DisplayCountsTags()
         {
             List<Tag> tagList = new List<Tag>();
@@ -1886,6 +2014,82 @@ namespace BookListDB
             foreach (var tagGroup in orderedGroups)
             {
                 Logger.OutputInformation("Tag " + tagGroup.TagName + "(" +
+                    tagGroup.Count + ")");
+            }
+        }
+        public struct TagBookType
+        {
+            public string tagValue;
+            public string bookTypeName;
+        }
+        void DisplayCountsTagsBookTypes()
+        {
+            List<TagBookType> tagBookTypeList = new List<TagBookType>();
+
+            foreach (Tag tag in _context.Tags)
+            {
+                Book book = _context.Books.FirstOrDefault(b => b.BookId ==
+                    tag.BookId);
+                if (book.UserId == Login.currentUserId)
+                {
+                    TagBookType tbt = new TagBookType();
+
+                    tbt.tagValue = tag.Value;
+                    BookType bookType = _context.BookTypes.FirstOrDefault(b => b.BookTypeId ==
+                    book.BookTypeId);
+                    tbt.bookTypeName = bookType.BK_TYPE;
+                    tagBookTypeList.Add(tbt);
+                }
+            }
+            var groups = tagBookTypeList
+                .GroupBy(tb => new { tb.tagValue, tb.bookTypeName })
+                .Select(g => new
+                {
+                    TagValue = g.Key.tagValue,
+                    BookTypeName = g.Key.bookTypeName,
+                    Count = g.Count()
+                });
+            var orderedGroups = groups.OrderByDescending(ab => ab.Count);
+            foreach (var authGroup in orderedGroups)
+            {
+                Logger.OutputInformation("Book type " + authGroup.BookTypeName + " Tag " + authGroup.TagValue + "(" +
+                    authGroup.Count + ")");
+            }
+        }
+        public struct TagRead
+        {
+            public string tagValue;
+            public bool read;
+        }
+        void DisplayCountsTagsReads()
+        {
+            List<TagRead> tagReadList = new List<TagRead>();
+
+            foreach (Tag tag in _context.Tags)
+            {
+                Book book = _context.Books.FirstOrDefault(b => b.BookId ==
+                    tag.BookId);
+                if (book.UserId == Login.currentUserId)
+                {
+                    TagRead tr = new TagRead();
+
+                    tr.tagValue = tag.Value;
+                    tr.read = book.Read;
+                    tagReadList.Add(tr);
+                }
+            }
+            var groups = tagReadList
+                .GroupBy(tr => new { tr.tagValue, tr.read })
+                .Select(g => new
+                {
+                    TagValue = g.Key.tagValue,
+                    Read = g.Key.read,
+                    Count = g.Count()
+                });
+            var orderedGroups = groups.OrderByDescending(tr => tr.Count);
+            foreach (var tagGroup in orderedGroups)
+            {
+                Logger.OutputInformation("Book type " + tagGroup.Read.ToString () + " Tag " + tagGroup.TagValue + "(" +
                     tagGroup.Count + ")");
             }
         }
@@ -1937,6 +2141,43 @@ namespace BookListDB
                     btGroup.Count + ")");
             }
         }
+        public struct ReadBookType
+        {
+            public Boolean read;
+            public string bookTypeName;
+        }
+        void DisplayCountsReadsBookTypes()
+        {
+            List<ReadBookType> readBookTypeList = new List<ReadBookType>();
+
+            foreach (Book book in _context.Books)
+            {
+                if (book.UserId == Login.currentUserId)
+                {
+                    ReadBookType rbt = new ReadBookType();
+
+                    rbt.read = book.Read;
+                    BookType bookType = _context.BookTypes.FirstOrDefault(b => b.BookTypeId ==
+                    book.BookTypeId);
+                    rbt.bookTypeName = bookType.BK_TYPE;
+                    readBookTypeList.Add(rbt);
+                }
+            }
+            var groups = readBookTypeList
+                .GroupBy(rb => new { rb.read, rb.bookTypeName })
+                .Select(g => new
+                {
+                    Read = g.Key.read,
+                    BookTypeName = g.Key.bookTypeName,
+                    Count = g.Count()
+                });
+            var orderedGroups = groups.OrderByDescending(rb => rb.Count);
+            foreach (var readGroup in orderedGroups)
+            {
+                Logger.OutputInformation("Book type " + readGroup.BookTypeName + " Read " + 
+                    readGroup.Read.ToString () + "(" + readGroup.Count + ")");
+            }
+        }
         void DisplayCountsUsers()
         {
             var groups = _context.Books
@@ -1955,6 +2196,115 @@ namespace BookListDB
             {
                 Logger.OutputInformation("User " + uGroup.UserName + "(" +
                     uGroup.Count + ")");
+            }
+        }
+        public struct UserBookType
+        {
+            public string userName;
+            public string bookTypeName;
+        }
+        void DisplayCountsUsersBookTypes()
+        {
+            List<UserBookType> userBookTypeList = new List<UserBookType>();
+
+            foreach (Book book in _context.Books)
+            {
+                UserBookType ubt = new UserBookType();
+
+                User user = _context.Users.FirstOrDefault(b => b.UserId ==
+                book.UserId);
+                ubt.userName = user.UserName;
+                BookType bookType = _context.BookTypes.FirstOrDefault(b => b.BookTypeId ==
+                book.BookTypeId);
+                ubt.bookTypeName = bookType.BK_TYPE;
+                userBookTypeList.Add(ubt);
+            }
+            var groups = userBookTypeList
+                .GroupBy(ub => new { ub.userName, ub.bookTypeName })
+                .Select(g => new
+                {
+                    UserName = g.Key.userName,
+                    BookTypeName = g.Key.bookTypeName,
+                    Count = g.Count()
+                });
+            var orderedGroups = groups.OrderByDescending(ub => ub.Count);
+            foreach (var userGroup in orderedGroups)
+            {
+                Logger.OutputInformation("Book type " + userGroup.BookTypeName + " User " +
+                    userGroup.UserName + "(" + userGroup.Count + ")");
+            }
+        }
+        public struct UserRead
+        {
+            public string userName;
+            public bool read;
+        }
+        void DisplayCountsUsersReads()
+        {
+            List<UserRead> userReadList = new List<UserRead>();
+
+            foreach (Book book in _context.Books)
+            {
+                UserRead ur = new UserRead();
+
+                User user = _context.Users.FirstOrDefault(b => b.UserId ==
+                book.UserId);
+                ur.userName = user.UserName;
+                ur.read = book.Read;
+                userReadList.Add(ur);
+            }
+            var groups = userReadList
+                .GroupBy(ur => new { ur.userName, ur.read })
+                .Select(g => new
+                {
+                    UserName = g.Key.userName,
+                    Read = g.Key.read,
+                    Count = g.Count()
+                });
+            var orderedGroups = groups.OrderByDescending(ur => ur.Count);
+            foreach (var userGroup in orderedGroups)
+            {
+                Logger.OutputInformation("Read " + userGroup.Read.ToString() + " User " +
+                    userGroup.UserName + "(" + userGroup.Count + ")");
+            }
+        }
+        public struct BookTypeRead
+        {
+            public string bookType;
+            public bool read;
+        }
+        void DisplayCountsBookTypesReads()
+        {
+            List<BookTypeRead> bookTypeReadList = new List<BookTypeRead>();
+
+            foreach (Book book in _context.Books)
+            {
+                BookTypeRead btr = new BookTypeRead();
+
+                User user = _context.Users.FirstOrDefault(b => b.UserId ==
+                book.UserId);
+                if (book.UserId == Login.currentUserId)
+                {
+                    BookType bookType = _context.BookTypes.FirstOrDefault(bt => bt.BookTypeId ==
+                    book.BookTypeId);
+                    btr.bookType = bookType.BK_TYPE;
+                    btr.read = book.Read;
+                    bookTypeReadList.Add(btr);
+                }
+            }
+            var groups = bookTypeReadList
+                .GroupBy(btr => new { btr.bookType, btr.read })
+                .Select(g => new
+                {
+                    BookType = g.Key.bookType,
+                    Read = g.Key.read,
+                    Count = g.Count()
+                });
+            var orderedGroups = groups.OrderByDescending(btr => btr.Count);
+            foreach (var btGroup in orderedGroups)
+            {
+                Logger.OutputInformation("Read " + btGroup.Read.ToString() + " Book Type " +
+                    btGroup.BookType + "(" + btGroup.Count + ")");
             }
         }
         public void DisplayVersion()

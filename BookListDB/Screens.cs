@@ -185,9 +185,9 @@ namespace BookListDB
         {
             screen[currentScreensId].FillInEmptyTags();
         }
-        public void DisplayCounts(FieldType field)
+        public void DisplayCounts(FieldType field1, FieldType field2)
         {
-            screen[currentScreensId].DisplayCounts(field);
+            screen[currentScreensId].DisplayCounts(field1, field2);
         }
         public void DisplayVersion()
         {
