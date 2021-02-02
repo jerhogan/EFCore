@@ -51,6 +51,7 @@ namespace BookListDB
 		public string Email;
 		public string delValue;
 		public int bookTypeRowNo;
+		public int shoppingListNo;
 
 		abstract public bool Apply();
 		abstract public string Display();
@@ -259,20 +260,24 @@ namespace BookListDB
 	}
 	public class ConvertCommand : Command
 	{
-		public ConvertCommand (string inputFile, string bookTypeString)
+		public ConvertCommand (string inputFile, string bookTypeString, int shoppingListNo)
         {
 			this.inputFile = inputFile;
 			bookType = bookTypeString;
+			this.shoppingListNo = shoppingListNo;
         }
 
 		override public bool Apply()
 		{
-			Commands.screens.Convert(inputFile, bookType);
+			Commands.screens.Convert(inputFile, bookType, shoppingListNo);
 			return (true);
         }
 		override public string Display()
 		{
-			return ("Command Convert(" + bookType + ", " + inputFile + ")");
+			if (bookType == "BT_SHOPPING_LIST")
+				return ("Command Convert(" + bookType + "#" + shoppingListNo + ", " + inputFile + ")");
+			else
+				return ("Command Convert(" + bookType + ", " + inputFile + ")");
 		}
 	}
 	public class ImportCommand : Command

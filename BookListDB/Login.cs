@@ -322,11 +322,12 @@ namespace BookListDB
             string inputFile;
             string readerType;
             string bookTypeString = "BT_KINDLE";
+            int shoppingListNo = 0;
 
             Logger.OutputInformation("Please Convert Web Page File to Import File for Database.");
             inputFile = GetConsoleString("Input Web Page File Name");
 
-            readerType = GetConsoleString("Convert ((A)mazon Kindle, Rakuten (K)obo, (W)ishlist or (G)oodReads");
+            readerType = GetConsoleString("Convert ((A)mazon Kindle, Rakuten (K)obo, (W)ishlist, (G)oodReads or (S)hopping List");
             if (readerType.Length > 0)
             {
                 switch (readerType.ToUpper()[0])
@@ -347,11 +348,23 @@ namespace BookListDB
                         bookTypeString = "BT_WISH_LIST";
                         break;
 
+                    case 'S':
+                        bool success;
+
+                        bookTypeString = "BT_SHOPPING_LIST";
+                        success = Int32.TryParse(GetConsoleString("Shopping List Number"), out shoppingListNo);
+
+                        if (!success)
+                        {
+                            Logger.OutputError("Book row no entered was not in numeric format");
+                        }
+                        break;
+
                     default:
                         // ignore
                         break;
                 }
-                ConvertCommand c = new ConvertCommand(inputFile, bookTypeString);
+                ConvertCommand c = new ConvertCommand(inputFile, bookTypeString, shoppingListNo);
                 c.Apply();
                 Commands.Add(c);
             }

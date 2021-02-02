@@ -148,9 +148,9 @@ namespace BookListDB
         {
             screen[currentScreensId].UpdateBookTitle(bookId, tagValue);
         }
-        public void Convert(string inputFile, string bookType)
+        public void Convert(string inputFile, string bookType, int shoppingListNo)
         {
-            screen[currentScreensId].Convert(inputFile, bookType);
+            screen[currentScreensId].Convert(inputFile, bookType, shoppingListNo);
         }
         public void Update(FieldType field, int updIndex, string newValue)
         {

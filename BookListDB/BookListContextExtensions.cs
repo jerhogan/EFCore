@@ -36,7 +36,7 @@ namespace BookListDB
             context.SaveChanges();
         }
 
-        private static void AddBookType(BookListContext context, string description, string bk_type)
+        private static void AddBookType(BookListContext context, string description, string bk_type, int shopping_list_no)
         {
             int bookTypeId;
             bookTypeId = (context.BookTypes == null || context.BookTypes.Count() == 0) ? 1 : context.BookTypes.Max(bt => bt.BookTypeId) + 1;
@@ -44,7 +44,8 @@ namespace BookListDB
             {
                 BookTypeId = bookTypeId,
                 Description = description,
-                BK_TYPE = bk_type
+                BK_TYPE = bk_type,
+                ShoppingListNo = shopping_list_no
             };
             context.BookTypes.Add(bookType);
 
@@ -83,13 +84,46 @@ namespace BookListDB
             }
             user_id = users.FirstOrDefault().UserId;
 
-            var bookTypes = context.BookTypes.Where(bt => bt.BK_TYPE == book_type_string);
-            if (bookTypes == null)
+            if (book_type_string.Contains("#"))
             {
-                Logger.OutputError("Book Type {0} does not exist.", book_type_string);
-                return (-1);
+                // is a BT_SHOPPING_LIST
+
+                var book_type_parts = book_type_string.Split('#');
+
+                if (book_type_parts[0] != "BT_SHOPPING_LIST")
+                {
+                    Logger.OutputError("Book Type {0} has # but isn't BT_SHOPPING_LIST.", book_type_string);
+                    return (-1);
+                }
+
+                bool success;
+                success = Int32.TryParse(book_type_parts[1], out int shoppingListNo);
+                if (!success)
+                {
+                    Logger.OutputError("Book Type {0} has # but non-numeric after it.", book_type_string);
+                    return (-1);
+                }
+
+                var bookTypes = context.BookTypes.Where(bt => (bt.BK_TYPE == book_type_parts[0] &&
+                                                               bt.ShoppingListNo == shoppingListNo));
+                if (bookTypes == null || bookTypes.Count(bt => bt.BookTypeId != 0) == 0)
+                {
+                    AddBookType(context, "Amazon Shopping List " + shoppingListNo.ToString(), "BT_SHOPPING_LIST", shoppingListNo);
+                    bookTypes = context.BookTypes.Where(bt => (bt.BK_TYPE == book_type_parts[0]) &&
+                                                              (bt.ShoppingListNo == shoppingListNo));
+                }
+                book_type_id = bookTypes.FirstOrDefault().BookTypeId;
             }
-            book_type_id = bookTypes.FirstOrDefault().BookTypeId;
+            else
+            {
+                var bookTypes = context.BookTypes.Where(bt => bt.BK_TYPE == book_type_string);
+                if (bookTypes == null)
+                {
+                    Logger.OutputError("Book Type {0} does not exist.", book_type_string);
+                    return (-1);
+                }
+                book_type_id = bookTypes.FirstOrDefault().BookTypeId;
+            }
 
             int bookId;
             bookId = (context.Books == null || context.Books.Count() == 0) ? 1 : context.Books.Max(b => b.BookId) + 1;
@@ -306,14 +340,13 @@ namespace BookListDB
             AddUser(context, "Anne", "Christine Grania", "Hogan", @"UQzA4uH/FRIMX9PkXDXI3Q==", "annehogan", "jerhogan@live.ie");
             AddUser(context, "Lucy", "Blaithin", "Hogan", @"UQzA4uH/FRIMX9PkXDXI3Q==", "lucyhogan", "jerhogan@live.ie");
 
-            AddBookType(context, "Google Books", "BT_GOOGLE");
-            AddBookType(context, "Amazon Kindle", "BT_KINDLE");
-            AddBookType(context, "Rakuten Kobo", "BT_KOBO");
-            AddBookType(context, "Adobe Digital Editions", "BT_ADOBE");
-            AddBookType(context, "Amazon Wish List", "BT_WISH_LIST");
-            AddBookType(context, "Amazon Shopping List", "BT_SHOPPING_LIST");
-            AddBookType(context, "Paperback Hard Copy", "BT_PAPER");
-            AddBookType(context, "Hardback Hard Copy", "BT_HARD");
+            AddBookType(context, "Google Books", "BT_GOOGLE", 0);
+            AddBookType(context, "Amazon Kindle", "BT_KINDLE", 0);
+            AddBookType(context, "Rakuten Kobo", "BT_KOBO", 0);
+            AddBookType(context, "Adobe Digital Editions", "BT_ADOBE", 0);
+            AddBookType(context, "Amazon Wish List", "BT_WISH_LIST", 0);
+            AddBookType(context, "Paperback Hard Copy", "BT_PAPER", 0);
+            AddBookType(context, "Hardback Hard Copy", "BT_HARD", 0);
 
             if (File.Exists(BookListPath))
             {
