@@ -309,7 +309,7 @@ namespace BookListDB
         }
 		override public string Display()
 		{
-			return ("Command Import(" + outputFile + ")");
+			return ("Command XMLSave(" + outputFile + ")");
 		}
 	}
 	public class XmlLoadCommand : Command
@@ -325,7 +325,7 @@ namespace BookListDB
         }
 		override public string Display()
 		{
-			return ("Command Import(" + inputFile + ")");
+			return ("Command XMLoad(" + inputFile + ")");
 		}
 	}
 	public class UpdateBookCommand : Command
