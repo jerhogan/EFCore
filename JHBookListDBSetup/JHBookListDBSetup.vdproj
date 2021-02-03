@@ -3005,15 +3005,15 @@
         {
         "Name" = "8:Microsoft Visual Studio"
         "ProductName" = "8:JHBookListDBSetup"
-        "ProductCode" = "8:{3C376A74-4398-48EE-A39F-0050C1EF6AA1}"
-        "PackageCode" = "8:{32BD6BA1-8193-4D3A-B9D9-88B320C0DF2B}"
+        "ProductCode" = "8:{897D90A7-7955-430F-965F-3BDD677F9184}"
+        "PackageCode" = "8:{13074E5B-13E8-4E5C-A4D6-774AF7B2124E}"
         "UpgradeCode" = "8:{8F570E57-831D-4B59-812A-F9DF7BD18029}"
         "AspNetVersion" = "8:4.0.30319.0"
         "RestartWWWService" = "11:FALSE"
         "RemovePreviousVersions" = "11:FALSE"
         "DetectNewerInstalledVersion" = "11:TRUE"
         "InstallAllUsers" = "11:FALSE"
-        "ProductVersion" = "8:1.00.0003"
+        "ProductVersion" = "8:1.00.0004"
         "Manufacturer" = "8:JH Inc."
         "ARPHELPTELEPHONE" = "8:"
         "ARPHELPLINK" = "8:"
@@ -3541,7 +3541,7 @@
         {
             "{5259A561-127C-4D43-A0A1-72F10C7B3BF8}:_90EC9F546476469F9F216488908DA81C"
             {
-            "SourcePath" = "8:..\\BookListDB\\obj\\Debug\\BookListDB.exe"
+            "SourcePath" = "8:"
             "TargetName" = "8:"
             "Tag" = "8:"
             "Folder" = "8:_2C02795E9F3242D785D3A8D5EE0C385B"

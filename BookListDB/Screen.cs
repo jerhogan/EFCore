@@ -53,11 +53,12 @@ namespace BookListDB
                 return input.PadRight(length, ' ');
         }
 
-        public int JumpTo(int jumpIndex)
+        public int JumpTo(int bookRowNo)
         {
-            topScreenId = jumpIndex;
+            
+            topScreenId = screenIds.FindIndex(si => si == bookRowNo);
             bottomScreenId = Math.Min(topScreenId + MAX_BOOKS_PER_SCREEN - 1, screenIds.Count - 1);
-            return (jumpIndex);
+            return (topScreenId);
         }
 
         public bool EmptyScreen()
@@ -1054,6 +1055,7 @@ namespace BookListDB
                 {
                     BookListContextExtensions.AddBook(_context, lines[i]);
                 }
+                Initialise(_context);
                 ReadScreenIds();
             }
         }
@@ -1202,6 +1204,8 @@ namespace BookListDB
                 _context.Tags.Add(tag);
                 _context.SaveChanges();
             }
+
+            Initialise(_context);
             ReadScreenIds();
         }
 
@@ -1404,6 +1408,7 @@ namespace BookListDB
                     DeleteBookTag(bookRowNo, delValue);
                     break;
             }
+            Initialise(_context);
             RefreshScreenIds();
 
             Logger.OutputInformation("New value is:");
@@ -1663,8 +1668,10 @@ namespace BookListDB
         {
             Logger.OutputInformation(FixedLength("Book#", 5) + bookPadding +
                               FixedLength("Title", 20) + bookPadding +
-                              FixedLength("Authors", 30) + bookPadding +
-                              FixedLength("Tags", 30) + bookPadding);
+                              FixedLength("Authors", 15) + bookPadding +
+                              FixedLength("Tags", 25) + bookPadding +
+                              FixedLength("Rd?", 5) + bookPadding +
+                              FixedLength("Book Type", 25) + bookPadding);
 
         }
 
@@ -1674,6 +1681,8 @@ namespace BookListDB
             List<string> authorsStringList;
             string tagsString;
             List<string> tagsStringList;
+            string readString;
+            string bookTypeString;
 
             Book book = _context.Books.Where(b => b.UserId == Login.currentUserId).FirstOrDefault(b => b.BookId == bookId);
             if (book != null)
@@ -1689,11 +1698,16 @@ namespace BookListDB
                 foreach (Tag t in tags)
                     tagsStringList.Add(t.Value);
                 tagsString = String.Join(";", tagsStringList.ToArray());
+                BookType bookType = _context.BookTypes.Where(bt => bt.BookTypeId == book.BookTypeId).FirstOrDefault ();
+                bookTypeString = (bookType == null) ? "" : bookType.Description;
+                readString = book.Read ? "Yes" : "No";
 
                 Logger.OutputInformation(FixedLength(bookId.ToString(), 5) + bookPadding +
                                   FixedLength(book.Title, 20) + bookPadding +
-                                  FixedLength(authorsString, 30) + bookPadding +
-                                  FixedLength(tagsString, 30) + bookPadding);
+                                  FixedLength(authorsString, 15) + bookPadding +
+                                  FixedLength(tagsString, 25) + bookPadding +
+                                  FixedLength(readString, 5) + bookPadding +
+                                  FixedLength(bookTypeString, 25) + bookPadding);
             }
             else
             {

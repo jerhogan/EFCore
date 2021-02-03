@@ -52,25 +52,25 @@ namespace BookListDB
 		public string delValue;
 		public int bookTypeRowNo;
 		public int shoppingListNo;
-
+		public int _bookRowNo;
 		abstract public bool Apply();
 		abstract public string Display();
 	}
 
 	public class JumpToCommand : Command
     {
-		public JumpToCommand (int newIndex)
+		public JumpToCommand (int newBookIdNo)
         {
-			_index = newIndex;
+			_bookRowNo = newBookIdNo;
         }
         override public bool Apply()
         {
-            Commands.screens.JumpTo(_index);
+            Commands.screens.JumpTo(_bookRowNo);
             return (true);
         }
 		override public string Display()
 		{
-			return ("Command JumpTo(" + _index + ")");
+			return ("Command JumpTo(" + _bookRowNo + ")");
 		}
 	}
 	public class RegisterNewUserCommand : Command
