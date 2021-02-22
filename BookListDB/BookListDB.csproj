@@ -188,6 +188,7 @@
     <Compile Include="DesignTimeDbContextFactory.cs" />
     <Compile Include="BookListContext.cs" />
     <Compile Include="BookListContextExtensions.cs" />
+    <Compile Include="Factory.cs" />
     <Compile Include="Initialize.cs" />
     <Compile Include="Logger.cs" />
     <Compile Include="Login.cs" />
@@ -200,6 +201,7 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Screen.cs" />
     <Compile Include="Screens.cs" />
+    <Compile Include="Singleton.cs" />
     <Compile Include="Tag.cs" />
     <Compile Include="User.cs" />
   </ItemGroup>

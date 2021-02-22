@@ -12,7 +12,6 @@ namespace BookListDB
 {
     public class Login
     {
-        public static int currentUserId = 0;
         static private Screens _Screens = null;
 
         public void SetupScreens(Screens screens)
@@ -66,12 +65,84 @@ namespace BookListDB
 
             _Screens.ReadScreenIds();
         }
+
+        public struct BookTypeType
+        {
+            public string bkString;
+            public int shopping_list_no;
+        }
+        static BookTypeType GetBookType(string prefix)
+        {
+            string readerType;
+            BookTypeType ret;
+            ret.bkString = "BT_KINDLE";
+            ret.shopping_list_no = 0;
+
+            readerType = GetConsoleString(prefix + " ((A)mazon Kindle, Rakuten (K)obo, (W)ishlist, (G)oodReads, G(o)ogle, A(d)obe, (P)aper, (H)ard-back or (S)hopping List");
+            if (readerType.Length > 0)
+            {
+                switch (readerType.ToUpper()[0])
+                {
+                    case 'A':
+                        ret.bkString = "BT_KINDLE";
+                        break;
+
+                    case 'K':
+                        ret.bkString = "BT_KOBO";
+                        break;
+
+                    case 'G':
+                        ret.bkString = "BT_GOOD_READS";
+                        break;
+
+                    case 'W':
+                        ret.bkString = "BT_WISH_LIST";
+                        break;
+
+                    case 'O':
+                        ret.bkString = "BT_GOOGLE";
+                        break;
+
+                    case 'D':
+                        ret.bkString = "BT_ADOBE";
+                        break;
+
+                    case 'P':
+                        ret.bkString = "BT_PAPER";
+                        break;
+
+                    case 'H':
+                        ret.bkString = "BT_HARD";
+                        break;
+
+                    case 'S':
+                        bool success;
+
+                        ret.bkString = "BT_SHOPPING_LIST";
+                        success = Int32.TryParse(GetConsoleString("Shopping List Number"), out ret.shopping_list_no);
+
+                        if (!success)
+                        {
+                            Logger.OutputError("Book row no entered was not in numeric format");
+                        }
+                        break;
+
+                    default:
+                        // ignore
+                        break;
+                }
+            }
+            return (ret);
+        }
+            
         public static void LoginUser()
         {
             string username;
             string password;
             string encrypted;
             bool loginSuccess;
+            const int allowedRetries = 3;
+            int retries = 1;
 
             do
             {
@@ -81,12 +152,31 @@ namespace BookListDB
                 encrypted = Encode_Decode.Encrypt(password);
                 /*                string decrypted = Encode_Decode.Decrypt(encrypted);
                                 Console.WriteLine("password = " + password + " encrypted = " + encrypted + " decrypted = " + decrypted);*/
-                LoginUserCommand c = new LoginUserCommand(username, encrypted);
-                loginSuccess =  c.Apply();
-                Commands.Add(c);
-
+                Factory factory = new Factory();
+                List<object> pars = new List<object>();
+                pars.Add(username);
+                pars.Add(encrypted);
+                LoginUserCommand c = (LoginUserCommand) factory.GetCommand(CommandType.Login, pars);
+                if (c != null)
+                {
+                    loginSuccess =  c.Apply();
+                    Commands.Add(c);
+                }
+                else
+                    loginSuccess = false;
+                if (!loginSuccess)
+                {
+                    Logger.OutputInformation("Failed to login " + username);
+                }
+                ++retries;
             }
-            while (!loginSuccess);
+            while (!loginSuccess && retries <= allowedRetries);
+            if (!loginSuccess)
+            {
+                Logger.OutputInformation("Failure to login max " + allowedRetries + " attempts allowed.");
+            }
+
+            _Screens.DisplayBooksScreen();
         }
 
         public static void RegisterNewUser()
@@ -108,10 +198,20 @@ namespace BookListDB
             Email = GetConsoleString("Email");
             Encrypted = Encode_Decode.Encrypt(Password);
 
-            RegisterNewUserCommand c = new RegisterNewUserCommand(FirstName,
-                MiddleName, Surname, Encrypted, UserName, Email);
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(FirstName);
+            pars.Add(MiddleName);
+            pars.Add(Surname);
+            pars.Add(Encrypted);
+            pars.Add(UserName);
+            pars.Add(Email);
+            RegisterNewUserCommand c = (RegisterNewUserCommand)factory.GetCommand(CommandType.RegisterNewUser, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
         }
         public static void EmailUserPassword()
         {
@@ -119,9 +219,15 @@ namespace BookListDB
 
             userName = GetConsoleString("User Name for new email password");
 
-            EmailUserPasswordCommand c = new EmailUserPasswordCommand(userName);
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(userName);
+            EmailUserPasswordCommand c = (EmailUserPasswordCommand)factory.GetCommand(CommandType.EmailUserPassword, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
         }
         public static void ChangeUserPassword()
         {
@@ -144,57 +250,94 @@ namespace BookListDB
             repeatPassword = ReadPasswordLine("Repeat New Password");
             repeatEncryptedPassword = Encode_Decode.Encrypt(repeatPassword);
 
-            ChangeUserPasswordCommand c = new ChangeUserPasswordCommand(userName, 
-                encryptedPassword, newEncryptedPassword, repeatEncryptedPassword);
-            c.Apply();
-            Commands.Add(c);
-
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(userName);
+            pars.Add(encryptedPassword);
+            pars.Add(newEncryptedPassword);
+            pars.Add(repeatEncryptedPassword);
+            ChangeUserPasswordCommand c = (ChangeUserPasswordCommand)factory.GetCommand(CommandType.ChangeUserPassword, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
         }
         public static void DownPage()
         {
-            DownPageCommand c = new DownPageCommand();
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            DownPageCommand c = (DownPageCommand)factory.GetCommand(CommandType.DownPage, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
 
             _Screens.DisplayBooksScreen();
         }
         public static void UpPage()
         {
-            UpPageCommand c = new UpPageCommand();
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            UpPageCommand c = (UpPageCommand)factory.GetCommand(CommandType.UpPage, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
 
             _Screens.DisplayBooksScreen();
         }
         public static void DownOne()
         {
-            DownOneCommand c = new DownOneCommand();
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            DownOneCommand c = (DownOneCommand)factory.GetCommand(CommandType.DownOne, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
 
             _Screens.DisplayBooksScreen();
         }
         public static void UpOne()
         {
-            UpOneCommand c = new UpOneCommand();
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            UpOneCommand c = (UpOneCommand)factory.GetCommand(CommandType.UpOne, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
 
             _Screens.DisplayBooksScreen();
         }
         public static void Home()
         {
-            HomeCommand c = new HomeCommand();
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            HomeCommand c = (HomeCommand)factory.GetCommand(CommandType.Home, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
 
             _Screens.DisplayBooksScreen();
         }
         public static void End()
         {
-            EndCommand c = new EndCommand();
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            EndCommand c = (EndCommand)factory.GetCommand(CommandType.End, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
 
             _Screens.DisplayBooksScreen();
         }
@@ -212,10 +355,16 @@ namespace BookListDB
             }
             else
             {
-                JumpToCommand c = new JumpToCommand(bookRowNo);
-                c.Apply();
-                Commands.Add(c);
-                _Screens.DisplayBooksScreen();
+                Factory factory = new Factory();
+                List<object> pars = new List<object>();
+                pars.Add(bookRowNo);
+                JumpToCommand c = (JumpToCommand)factory.GetCommand(CommandType.JumpTo, pars);
+                if (c != null)
+                {
+                    c.Apply();
+                    Commands.Add(c);
+                    _Screens.DisplayBooksScreen();
+                }
             }
         }
 
@@ -268,9 +417,17 @@ namespace BookListDB
                         break;
                 }
             }
-            OrderCommand c = new OrderCommand(fieldType, orderType);
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(fieldType);
+            pars.Add(orderType);
+            OrderCommand c = (OrderCommand)factory.GetCommand(CommandType.Order, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
+
             _Screens.DisplayBooksScreen();
         }
         public static void Filter()
@@ -312,59 +469,35 @@ namespace BookListDB
             string searchString;
 
             searchString = GetConsoleString("Enter Search String");
-            FilterCommand c = new FilterCommand(fieldType, searchString);
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(fieldType);
+            pars.Add(searchString);
+            FilterCommand c = (FilterCommand) factory.GetCommand(CommandType.Filter, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
             _Screens.DisplayBooksScreen();
         }
         public static void ConvertWebPage()
         {
             string inputFile;
-            string readerType;
-            string bookTypeString = "BT_KINDLE";
-            int shoppingListNo = 0;
+            BookTypeType book_type;
 
             Logger.OutputInformation("Please Convert Web Page File to Import File for Database.");
             inputFile = GetConsoleString("Input Web Page File Name");
 
-            readerType = GetConsoleString("Convert ((A)mazon Kindle, Rakuten (K)obo, (W)ishlist, (G)oodReads or (S)hopping List");
-            if (readerType.Length > 0)
+            book_type = GetBookType("Convert Web Page");
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(inputFile);
+            pars.Add(book_type.bkString);
+            pars.Add(book_type.shopping_list_no);
+            ConvertCommand c = (ConvertCommand)factory.GetCommand(CommandType.Convert, pars);
+            if (c != null)
             {
-                switch (readerType.ToUpper()[0])
-                {
-                    case 'A':
-                        bookTypeString = "BT_KINDLE";
-                        break;
-
-                    case 'K':
-                        bookTypeString = "BT_KOBO";
-                        break;
-
-                    case 'G':
-                        bookTypeString = "BT_GOOD_READS";
-                        break;
-
-                    case 'W':
-                        bookTypeString = "BT_WISH_LIST";
-                        break;
-
-                    case 'S':
-                        bool success;
-
-                        bookTypeString = "BT_SHOPPING_LIST";
-                        success = Int32.TryParse(GetConsoleString("Shopping List Number"), out shoppingListNo);
-
-                        if (!success)
-                        {
-                            Logger.OutputError("Book row no entered was not in numeric format");
-                        }
-                        break;
-
-                    default:
-                        // ignore
-                        break;
-                }
-                ConvertCommand c = new ConvertCommand(inputFile, bookTypeString, shoppingListNo);
                 c.Apply();
                 Commands.Add(c);
             }
@@ -377,9 +510,15 @@ namespace BookListDB
             Logger.OutputInformation("Please Import File for Database.");
             inputFile = GetConsoleString("Import File Name");
 
-            ImportCommand c = new ImportCommand(inputFile);
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(inputFile);
+            ImportCommand c = (ImportCommand)factory.GetCommand(CommandType.Import, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
 
             Logger.OutputInformation("Import file {0} processed", inputFile);
         }
@@ -390,9 +529,15 @@ namespace BookListDB
             Logger.OutputInformation("Please Save XML File from database File for Database.");
             outputFile = GetConsoleString("XML File Name");
 
-            XmlSaveCommand c = new XmlSaveCommand(outputFile);
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(outputFile);
+            XmlSaveCommand c = (XmlSaveCommand)factory.GetCommand(CommandType.XmlSave, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
 
             Logger.OutputInformation("XML file {0} processed", outputFile);
         }
@@ -403,9 +548,15 @@ namespace BookListDB
             Logger.OutputInformation("Please Load XML File from database File for Database.");
             inputFile = GetConsoleString("XML File Name");
 
-            XmlLoadCommand c = new XmlLoadCommand(inputFile);
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(inputFile);
+            XmlLoadCommand c = (XmlLoadCommand)factory.GetCommand(CommandType.XmlLoad, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
 
             Logger.OutputInformation("XML file {0} processed", inputFile);
         }
@@ -452,31 +603,47 @@ namespace BookListDB
                     // ignore
                     break;
             }
-            DeleteCommand c = new DeleteCommand(fieldType, bookRowNo, delValue);
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(fieldType);
+            pars.Add(bookRowNo);
+            pars.Add(delValue);
+            DeleteCommand c = (DeleteCommand)factory.GetCommand(CommandType.Delete, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
         }
         static public void CreateBook()
         {
-            string query, user, bookType, tagValues, readString;
+            string query, user, tagValues, readString;
             bool read;
-            bool success;
+            BookTypeType book_type;
 
             Logger.OutputInformation("Please Create a Book in the Database.");
 
             query = GetConsoleString("Book Query String").Replace(",", ";");
             user = GetConsoleString("User Name").Replace(",", ";");
-            bookType = GetConsoleString("Book Type").Replace(",", ";");
-            success = Int32.TryParse(bookType, out int bookTypeRowNo);
-            if (!success)
-                bookTypeRowNo = 1;
+            book_type = GetBookType("Create Book Type");
             readString = GetConsoleString("Read Already (Y/N)").Replace(",", ";");
             read = readString.Length > 0 && readString.ToUpper()[0] == 'Y';
             tagValues = GetConsoleString("Tag Values").Replace(",", ";");
 
-            CreateBookCommand c = new CreateBookCommand(query, user, bookTypeRowNo, read, tagValues);
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(query);
+            pars.Add(user);
+            pars.Add(book_type.bkString);
+            pars.Add(book_type.shopping_list_no);
+            pars.Add(read);
+            pars.Add(tagValues);
+            CreateBookCommand c = (CreateBookCommand)factory.GetCommand(CommandType.CreateBook, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
         }
 
         public static void UpdateBook()
@@ -526,18 +693,31 @@ namespace BookListDB
                     break;
             }
 
-            UpdateBookCommand c = new UpdateBookCommand(fieldType, bookRowNo, newValue);
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(fieldType);
+            pars.Add(bookRowNo);
+            pars.Add(newValue);
+            UpdateBookCommand c = (UpdateBookCommand)factory.GetCommand(CommandType.UpdateBook, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
         }
 
         static public void FillInEmptyTags()
         {
             Logger.OutputInformation("Please Fill in empty tags in the Database.");
 
-            FillInEmptyTagsCommand c = new FillInEmptyTagsCommand();
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            FillInEmptyTagsCommand c = (FillInEmptyTagsCommand)factory.GetCommand(CommandType.FillInEmptyTags, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
         }
         static public void DisplayCounts()
         {
@@ -612,17 +792,29 @@ namespace BookListDB
                     break;
             }
 
-            DisplayCountsCommand c = new DisplayCountsCommand(fieldType1, fieldType2);
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            pars.Add(fieldType1);
+            pars.Add(fieldType2);
+            DisplayCountsCommand c = (DisplayCountsCommand) factory.GetCommand(CommandType.DisplayCounts, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
         }
         static public void DisplayVersion()
         {
             Logger.OutputInformation("Please Display the Software Version.");
 
-            DisplayVersionCommand c = new DisplayVersionCommand();
-            c.Apply();
-            Commands.Add(c);
+            Factory factory = new Factory();
+            List<object> pars = new List<object>();
+            DisplayVersionCommand c = (DisplayVersionCommand)factory.GetCommand(CommandType.DisplayVersion, pars);
+            if (c != null)
+            {
+                c.Apply();
+                Commands.Add(c);
+            }
         }
     }
 }

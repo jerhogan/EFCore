@@ -25,6 +25,7 @@ namespace BookListDB
     {
         public int topScreenId;
         public int bottomScreenId;
+        public int currentScreenId;
         public List<int> screenIds;
         public const int MAX_BOOKS_PER_SCREEN = 10;
         public List<Book> books;
@@ -55,9 +56,25 @@ namespace BookListDB
 
         public int JumpTo(int bookRowNo)
         {
-            
-            topScreenId = screenIds.FindIndex(si => si == bookRowNo);
-            bottomScreenId = Math.Min(topScreenId + MAX_BOOKS_PER_SCREEN - 1, screenIds.Count - 1);
+            if (screenIds.Count > 0)
+            {
+                var current = screenIds.Where(si => si >= bookRowNo);
+                if ((current == null) || (current.Count(si => si > 0) == 0))
+                    topScreenId = -1;
+                else
+                {
+                    int[] orderedCurrent;
+                    orderedCurrent = current.OrderBy(si => si).ToArray();
+                    if (orderedCurrent == null)
+                        topScreenId = -1;
+                    else
+                    {
+                        topScreenId = screenIds.IndexOf(orderedCurrent[0]);
+                        bottomScreenId = Math.Min(topScreenId + MAX_BOOKS_PER_SCREEN - 1, screenIds.Count - 1);
+                        currentScreenId = topScreenId;
+                    }
+                }
+            }
             return (topScreenId);
         }
 
@@ -131,19 +148,31 @@ namespace BookListDB
             if (bottomScreenId < screenIds.Count)
                 bottomScreenId = Math.Min(screenIds.Count - 1, MAX_BOOKS_PER_SCREEN - 1);
             topScreenId = Math.Max(bottomScreenId - MAX_BOOKS_PER_SCREEN + 1, 0);
+            currentScreenId = bottomScreenId;
         }
         public void DownOne()
         {
-            if (bottomScreenId != screenIds.Count - 1)
+            if (currentScreenId != screenIds.Count - 1)
             {
-                topScreenId = Math.Min(topScreenId + 1, screenIds.Count - 1);
-                bottomScreenId = Math.Min(topScreenId + MAX_BOOKS_PER_SCREEN - 1, screenIds.Count - 1);
+                if (screenIds.Count > currentScreenId)
+                    currentScreenId++;
+
+                if (currentScreenId > bottomScreenId)
+                {
+                    topScreenId = Math.Min(bottomScreenId + 1, screenIds.Count - 1);
+                    bottomScreenId = Math.Min(topScreenId + MAX_BOOKS_PER_SCREEN - 1, screenIds.Count - 1);
+
+                    currentScreenId = topScreenId;
+                }
+
+
             }
         }
         public void DownPage()
         {
             if (bottomScreenId != screenIds.Count - 1)
             {
+                int initialTopScreenId = topScreenId;
                 topScreenId = Math.Min(bottomScreenId + 1, screenIds.Count - 1);
                 bottomScreenId = Math.Min(topScreenId + MAX_BOOKS_PER_SCREEN - 1, screenIds.Count - 1);
                 if (bottomScreenId - topScreenId + 1 < MAX_BOOKS_PER_SCREEN)
@@ -151,31 +180,88 @@ namespace BookListDB
                     bottomScreenId = screenIds.Count - 1;
                     topScreenId = Math.Max(bottomScreenId - MAX_BOOKS_PER_SCREEN + 1, 0);
                 }
+                int numMoved;
+                numMoved = topScreenId - initialTopScreenId;
+                if (numMoved < MAX_BOOKS_PER_SCREEN)
+                    currentScreenId = bottomScreenId;
+                else
+                    currentScreenId += numMoved;
+                if (currentScreenId >= screenIds.Count)
+                    currentScreenId = screenIds.Count - 1;
             }
+            else
+                currentScreenId = bottomScreenId;
         }
         public void UpOne()
         {
-            topScreenId = Math.Max(topScreenId - 1, 0);
-            bottomScreenId = Math.Min(topScreenId + MAX_BOOKS_PER_SCREEN - 1, screenIds.Count - 1);
+            bool wasAtTop;
+
+            wasAtTop = currentScreenId == topScreenId;
+            if (currentScreenId > 0)
+                currentScreenId--;
+
+            if ((topScreenId != 0) && wasAtTop)
+            {
+                topScreenId = Math.Max(topScreenId - 1, 0);
+                bottomScreenId = Math.Min(topScreenId + MAX_BOOKS_PER_SCREEN - 1, screenIds.Count - 1);
+            }
         }
         public void UpPage()
         {
+            int initialTopScreenId;
+
+            initialTopScreenId = topScreenId;
             topScreenId = Math.Max(topScreenId - MAX_BOOKS_PER_SCREEN, 0);
             bottomScreenId = Math.Min(topScreenId + MAX_BOOKS_PER_SCREEN - 1, screenIds.Count - 1);
+            int numMoved;
+            numMoved = initialTopScreenId - topScreenId;
+            if (numMoved < MAX_BOOKS_PER_SCREEN)
+                currentScreenId = topScreenId;
+            else
+                currentScreenId -= numMoved;
+        }
+        int GetBookIdOfScreenId(int screenId)
+        {
+            if (screenId == -1)
+                return (-1);
+            else
+            {
+                if (screenId >= screenIds.Count)
+                    return (-1);
+                else
+                    return (screenIds[screenId]);
+            }
+        }
+        int GetScreenIdOfBookId(int bookId)
+        {
+            if (bookId == -1)
+                return (-1);
+            else
+            {
+                for (var i = 0; i <= screenIds.Count; ++i)
+                {
+                    if (screenIds[i] == bookId)
+                        return (i);
+                }
+            return (-1);
+            }
         }
         public void Home()
         {
             topScreenId = 0;
             bottomScreenId = Math.Min(topScreenId + MAX_BOOKS_PER_SCREEN - 1, screenIds.Count - 1);
+
+            currentScreenId = topScreenId;
         }
         public void End()
         {
             bottomScreenId = screenIds.Count - 1;
             topScreenId = Math.Max(bottomScreenId - MAX_BOOKS_PER_SCREEN + 1, 0);
+            currentScreenId = bottomScreenId;
         }
         public void Initialise(BookListContext context)
         {
-            books = context.Books.Where(b => b.UserId == Login.currentUserId).ToList();
+            books = context.Books.Where(b => b.UserId == Singleton.Instance.currentUserId).ToList();
             _context = context;
         }
         public void PopulateBooks(List<Book> oldBooks, BookListContext oldContext)
@@ -208,7 +294,7 @@ namespace BookListDB
                     books = new List<Book>();
                     foreach (BookAuthorValue bkAuth in bookAuthors)
                     {
-                        book = initialBooks.Where(b => b.UserId == Login.currentUserId).FirstOrDefault(b => b.BookId == bkAuth.BookId);
+                        book = initialBooks.Where(b => b.UserId == Singleton.Instance.currentUserId).FirstOrDefault(b => b.BookId == bkAuth.BookId);
                         if (book != null)
                             books.Add(book);
                     }
@@ -227,7 +313,7 @@ namespace BookListDB
                     books = new List<Book>();
                     foreach (BookTag bkTag in bookTags)
                     {
-                        book = initialBooks.Where(b => b.UserId == Login.currentUserId).FirstOrDefault(b => b.BookId == bkTag.BookId);
+                        book = initialBooks.Where(b => b.UserId == Singleton.Instance.currentUserId).FirstOrDefault(b => b.BookId == bkTag.BookId);
                         if (book != null)
                             books.Add(book);
                     }
@@ -236,30 +322,30 @@ namespace BookListDB
                 case FieldType.fTitle:
                     if (order == OrderType.Ascending)
                         books = books.OrderBy(b => b.Title)
-                                     .Where(b => b.UserId == Login.currentUserId).ToList();
+                                     .Where(b => b.UserId == Singleton.Instance.currentUserId).ToList();
                     else
                         books = books.OrderByDescending(b => b.Title)
-                                     .Where(b => b.UserId == Login.currentUserId).ToList();
+                                     .Where(b => b.UserId == Singleton.Instance.currentUserId).ToList();
                     break;
 
                 case FieldType.fIndex:
                     if (order == OrderType.Ascending)
                         books = books.OrderBy(b => b.BookId)
-                                     .Where(b => b.UserId == Login.currentUserId).ToList();
+                                     .Where(b => b.UserId == Singleton.Instance.currentUserId).ToList();
                     else
                         books = books.OrderByDescending(b => b.BookId)
-                                     .Where(b => b.UserId == Login.currentUserId).ToList();
+                                     .Where(b => b.UserId == Singleton.Instance.currentUserId).ToList();
                     break;
 
                 case FieldType.fBookType:
                     List<BookTypeEntry> bookTypeEntryList = FillBookEntryList();
                     if (order == OrderType.Ascending)
                         bookTypeEntryList = bookTypeEntryList
-                            .Where(b => b.userId == Login.currentUserId)
+                            .Where(b => b.userId == Singleton.Instance.currentUserId)
                             .OrderBy(b => b.BK_TYPE).ToList();
                     else
                         bookTypeEntryList = bookTypeEntryList
-                            .Where(b => b.userId == Login.currentUserId)
+                            .Where(b => b.userId == Singleton.Instance.currentUserId)
                             .OrderByDescending(b => b.BK_TYPE).ToList();
                     SendBookTypeEntryListToBooks(bookTypeEntryList);
                     break;
@@ -267,10 +353,10 @@ namespace BookListDB
                 case FieldType.fRead:
                     if (order == OrderType.Ascending)
                         books = books.OrderBy(b => b.Read)
-                                     .Where(b => b.UserId == Login.currentUserId).ToList();
+                                     .Where(b => b.UserId == Singleton.Instance.currentUserId).ToList();
                     else
                         books = books.OrderByDescending(b => b.Read)
-                                     .Where(b => b.UserId == Login.currentUserId).ToList();
+                                     .Where(b => b.UserId == Singleton.Instance.currentUserId).ToList();
                     break;
             }
 
@@ -427,10 +513,12 @@ namespace BookListDB
             if (EmptyScreen())
                 return;
 
+            int currBookIndex = screenIds[currentScreenId];
+
             switch (field)
             {
                 case FieldType.fTitle:
-                    books = books.Where(b => b.UserId == Login.currentUserId).Where(bt => bt.Title.ToUpper().Contains(query.ToUpper())).ToList();
+                    books = books.Where(b => b.UserId == Singleton.Instance.currentUserId).Where(bt => bt.Title.ToUpper().Contains(query.ToUpper())).ToList();
                     break;
 
                 case FieldType.fAuthor:
@@ -445,7 +533,7 @@ namespace BookListDB
                     books = new List<Book>();
                     foreach (BookAuthorValue bkAuth in bookAuthors)
                     {
-                        book = initialBooks.Where(b => b.UserId == Login.currentUserId).FirstOrDefault(b => b.BookId == bkAuth.BookId);
+                        book = initialBooks.Where(b => b.UserId == Singleton.Instance.currentUserId).FirstOrDefault(b => b.BookId == bkAuth.BookId);
                         if (book != null)
                             books.Add(book);
                     }
@@ -462,7 +550,7 @@ namespace BookListDB
                     books = new List<Book>();
                     foreach (BookTag bkTag in bookTags)
                     {
-                        book = initialBooks.Where(b => b.UserId == Login.currentUserId).FirstOrDefault(b => b.BookId == bkTag.BookId);
+                        book = initialBooks.Where(b => b.UserId == Singleton.Instance.currentUserId).FirstOrDefault(b => b.BookId == bkTag.BookId);
                         if (book != null)
                             books.Add(book);
                     }
@@ -470,7 +558,7 @@ namespace BookListDB
 
                 case FieldType.fBookType:
                     List<BookTypeEntry> bookTypeEntryList = FillBookEntryList();
-                    bookTypeEntryList = bookTypeEntryList.Where(b => b.userId == Login.currentUserId)
+                    bookTypeEntryList = bookTypeEntryList.Where(b => b.userId == Singleton.Instance.currentUserId)
                                                          .Where(b => b.BK_TYPE.ToUpper().Contains(query.ToUpper())).ToList();
                     SendBookTypeEntryListToBooks(bookTypeEntryList);
                     break;
@@ -479,7 +567,7 @@ namespace BookListDB
                     bool readValue;
 
                     readValue = query.Length > 0 && query.ToUpper()[0] == 'Y';
-                    books = books.Where(b => b.UserId == Login.currentUserId).Where(bt => bt.Read == readValue).ToList();
+                    books = books.Where(b => b.UserId == Singleton.Instance.currentUserId).Where(bt => bt.Read == readValue).ToList();
                     break;
 
                 default:
@@ -489,6 +577,12 @@ namespace BookListDB
             }
 
             ReadScreenIds();
+            int currScreenIndex;
+            currScreenIndex = screenIds.FindIndex (si => si == currBookIndex);
+            if (currScreenIndex == -1)
+                currentScreenId = topScreenId;
+            else
+                currentScreenId = currScreenIndex;
         }
         public void Convert(string inputFile, string bookType, int shoppingListNo)
         {
@@ -687,7 +781,7 @@ namespace BookListDB
 
                     // get username
                     string userName;
-                    User user = _context.Users.FirstOrDefault(u => u.UserId == Login.currentUserId);
+                    User user = _context.Users.FirstOrDefault(u => u.UserId == Singleton.Instance.currentUserId);
                     if (user == null)
                         userName = "jerhogan";
                     else
@@ -782,7 +876,7 @@ namespace BookListDB
 
                     // get username
                     string userName;
-                    User user = _context.Users.FirstOrDefault(u => u.UserId == Login.currentUserId);
+                    User user = _context.Users.FirstOrDefault(u => u.UserId == Singleton.Instance.currentUserId);
                     if (user == null)
                         userName = "jerhogan";
                     else
@@ -875,7 +969,7 @@ namespace BookListDB
 
                     // get username
                     string userName;
-                    User user = _context.Users.FirstOrDefault(u => u.UserId == Login.currentUserId);
+                    User user = _context.Users.FirstOrDefault(u => u.UserId == Singleton.Instance.currentUserId);
                     if (user == null)
                         userName = "jerhogan";
                     else
@@ -1009,7 +1103,7 @@ namespace BookListDB
 
                     // get username
                     string userName;
-                    User user = _context.Users.FirstOrDefault(u => u.UserId == Login.currentUserId);
+                    User user = _context.Users.FirstOrDefault(u => u.UserId == Singleton.Instance.currentUserId);
                     if (user == null)
                         userName = "jerhogan";
                     else
@@ -1446,7 +1540,7 @@ namespace BookListDB
             RefreshScreenIds();
 
 
-            books = _context.Books.Where(b => b.UserId == Login.currentUserId).ToList();
+            books = _context.Books.Where(b => b.UserId == Singleton.Instance.currentUserId).ToList();
             ReadScreenIds();
         }
         public void DeleteBookAuthor(int updIndex, string authorName)
@@ -1611,10 +1705,23 @@ namespace BookListDB
                 _context.SaveChanges();
             }
         }
-        public int CreateBook(string query, string user, int bookTypeRowNo, bool read, string tagValues)
+        public int CreateBook(string query, string user, string bookTypeString, int shoppingListNo, bool read, string tagValues)
         {
             int bookRowNo;
+            int bookTypeRowNo;
+            BookType bookType;
 
+            if (bookTypeString == "BT_SHOPPING_LIST")
+            {
+                bookType = _context.BookTypes.FirstOrDefault(bt => bt.BK_TYPE == "BT_SHOPPING_LIST" &&
+                                                                            bt.ShoppingListNo == shoppingListNo);
+            }
+            else
+            {
+                bookType = _context.BookTypes.FirstOrDefault(bt => bt.BK_TYPE == bookTypeString);
+            }
+
+            bookTypeRowNo = bookType.BookTypeId;
             bookRowNo = DBCreateBook(query, user, bookTypeRowNo, read, tagValues);
 
             Logger.OutputInformation("New value is:");
@@ -1638,7 +1745,10 @@ namespace BookListDB
             }
             allParArray[0] = query;
             allParArray[1] = user;
-            allParArray[2] = bookType.BK_TYPE;
+            if (bookType.BK_TYPE == "BT_SHOPPING_LIST")
+                allParArray[2] = bookType.BK_TYPE + "#" + bookType.ShoppingListNo;
+            else
+                allParArray[2] = bookType.BK_TYPE;
             allParArray[3] = read.ToString();
             allParArray[4] = tagValues;
             allPars = string.Join(",", allParArray);
@@ -1658,7 +1768,7 @@ namespace BookListDB
             {
                 for (i = topScreenId; i <= bottomScreenId; ++i)
                 {
-                    DisplayBook(screenIds[i]);
+                    DisplayBook(screenIds[i], i);
                 }
             }
         }
@@ -1675,7 +1785,7 @@ namespace BookListDB
 
         }
 
-        public void DisplayBook(int bookId)
+        public void DisplayBook(int bookId, int screenId = -1)
         {
             string authorsString;
             List<string> authorsStringList;
@@ -1683,8 +1793,9 @@ namespace BookListDB
             List<string> tagsStringList;
             string readString;
             string bookTypeString;
+            string currentString;
 
-            Book book = _context.Books.Where(b => b.UserId == Login.currentUserId).FirstOrDefault(b => b.BookId == bookId);
+            Book book = _context.Books.Where(b => b.UserId == Singleton.Instance.currentUserId).FirstOrDefault(b => b.BookId == bookId);
             if (book != null)
             {
                 List<Author> authors = _context.Authors.Where(a => a.BookId == bookId).ToList();
@@ -1701,13 +1812,18 @@ namespace BookListDB
                 BookType bookType = _context.BookTypes.Where(bt => bt.BookTypeId == book.BookTypeId).FirstOrDefault ();
                 bookTypeString = (bookType == null) ? "" : bookType.Description;
                 readString = book.Read ? "Yes" : "No";
+                if (screenId == currentScreenId)
+                    currentString = "<--";
+                else
+                    currentString = "";
 
                 Logger.OutputInformation(FixedLength(bookId.ToString(), 5) + bookPadding +
                                   FixedLength(book.Title, 20) + bookPadding +
                                   FixedLength(authorsString, 15) + bookPadding +
                                   FixedLength(tagsString, 25) + bookPadding +
                                   FixedLength(readString, 5) + bookPadding +
-                                  FixedLength(bookTypeString, 25) + bookPadding);
+                                  FixedLength(bookTypeString, 25) + bookPadding +
+                                  currentString);
             }
             else
             {
@@ -1745,7 +1861,7 @@ namespace BookListDB
             loggedInSuccessfully = user != null;
             if (loggedInSuccessfully)
             {
-                Login.currentUserId = user.UserId;
+                Singleton.Instance.currentUserId = user.UserId;
                 string welcome;
 
                 welcome = "Welcome " + user.FirstName + " !";
@@ -1754,6 +1870,17 @@ namespace BookListDB
                 Initialise(_context);
 
                 ReadScreenIds();
+
+                if (screenIds.Count > 0)
+                {
+                    int newTopBookId;
+
+                    newTopBookId = screenIds.Min(si => si);
+
+                    Order(FieldType.fIndex, OrderType.Ascending, newTopBookId, -1);
+
+                    Home();
+                }
             }
             return (loggedInSuccessfully);
         }
@@ -2001,6 +2128,42 @@ namespace BookListDB
                         break;
                 }
             }
+            else if (fieldType2 == FieldType.fAll)
+            {
+                switch (fieldType1)
+                {
+                    case FieldType.fAuthor:
+                        DisplayCountsAuthorsBookTypes();
+                        DisplayCountsAuthorsReads();
+                        break;
+                    case FieldType.fTag:
+                        DisplayCountsTagsBookTypes();
+                        DisplayCountsTagsReads();
+                        break;
+                    case FieldType.fBookType:
+                        //DisplayCountsBookTypesBookTypes();
+                        DisplayCountsBookTypesReads();
+                        break;
+                    case FieldType.fRead:
+                        //DisplayCountsReadsReads();
+                        DisplayCountsReadsBookTypes();
+                        break;
+                    case FieldType.fUser:
+                        DisplayCountsUsersBookTypes();
+                        DisplayCountsUsersReads();
+                        break;
+                    case FieldType.fAll:
+                        DisplayCountsAuthorsBookTypes();
+                        DisplayCountsTagsBookTypes();
+                        //DisplayCountsBookTypesBookTypes();
+                        DisplayCountsUsersBookTypes();
+                        DisplayCountsAuthorsReads();
+                        DisplayCountsTagsReads();
+                        DisplayCountsBookTypesReads();
+                        DisplayCountsUsersReads();
+                        break;
+                }
+            }
 
             RefreshScreenIds();
         }
@@ -2012,7 +2175,7 @@ namespace BookListDB
             {
                 Book book = _context.Books.FirstOrDefault(b => b.BookId ==
                     author.BookId);
-                if (book.UserId == Login.currentUserId)
+                if (book.UserId == Singleton.Instance.currentUserId)
                     authorList.Add(author);
             }
             var groups = authorList.GroupBy(a => a.Name, (k, c) => new Result()
@@ -2043,7 +2206,7 @@ namespace BookListDB
             {
                 Book book = _context.Books.FirstOrDefault(b => b.BookId ==
                     author.BookId);
-                if (book.UserId == Login.currentUserId)
+                if (book.UserId == Singleton.Instance.currentUserId)
                 {
                     AuthorBookType abt = new AuthorBookType();
 
@@ -2082,7 +2245,7 @@ namespace BookListDB
             {
                 Book book = _context.Books.FirstOrDefault(b => b.BookId ==
                     author.BookId);
-                if (book.UserId == Login.currentUserId)
+                if (book.UserId == Singleton.Instance.currentUserId)
                 {
                     AuthorRead ar = new AuthorRead();
 
@@ -2114,7 +2277,7 @@ namespace BookListDB
             {
                 Book book = _context.Books.FirstOrDefault(b => b.BookId ==
                     tag.BookId);
-                if (book.UserId == Login.currentUserId)
+                if (book.UserId == Singleton.Instance.currentUserId)
                     tagList.Add(tag);
             }
             var groups = tagList.GroupBy(t => t.Value, (k, c) => new TagResult()
@@ -2142,7 +2305,7 @@ namespace BookListDB
             {
                 Book book = _context.Books.FirstOrDefault(b => b.BookId ==
                     tag.BookId);
-                if (book.UserId == Login.currentUserId)
+                if (book.UserId == Singleton.Instance.currentUserId)
                 {
                     TagBookType tbt = new TagBookType();
 
@@ -2181,7 +2344,7 @@ namespace BookListDB
             {
                 Book book = _context.Books.FirstOrDefault(b => b.BookId ==
                     tag.BookId);
-                if (book.UserId == Login.currentUserId)
+                if (book.UserId == Singleton.Instance.currentUserId)
                 {
                     TagRead tr = new TagRead();
 
@@ -2211,7 +2374,7 @@ namespace BookListDB
 
             foreach (Book book in _context.Books)
             {
-                if (book.UserId == Login.currentUserId)
+                if (book.UserId == Singleton.Instance.currentUserId)
                     bookList.Add(book);
             }
             var groups = bookList
@@ -2238,7 +2401,7 @@ namespace BookListDB
 
             foreach (Book book in _context.Books)
             {
-                if (book.UserId == Login.currentUserId)
+                if (book.UserId == Singleton.Instance.currentUserId)
                     bookList.Add(book);
             }
             var countGroups = bookList.GroupBy(b => b.Read, (k, c) => new ReadResult()
@@ -2264,7 +2427,7 @@ namespace BookListDB
 
             foreach (Book book in _context.Books)
             {
-                if (book.UserId == Login.currentUserId)
+                if (book.UserId == Singleton.Instance.currentUserId)
                 {
                     ReadBookType rbt = new ReadBookType();
 
@@ -2395,7 +2558,7 @@ namespace BookListDB
 
                 User user = _context.Users.FirstOrDefault(b => b.UserId ==
                 book.UserId);
-                if (book.UserId == Login.currentUserId)
+                if (book.UserId == Singleton.Instance.currentUserId)
                 {
                     BookType bookType = _context.BookTypes.FirstOrDefault(bt => bt.BookTypeId ==
                     book.BookTypeId);

@@ -36,8 +36,12 @@ namespace BookListDB
                         case 'L':
                             Login.LoginUser();
                             User user;
-                            user = context.Users.FirstOrDefault(u => u.UserId == Login.currentUserId);
-                            Logger.OutputInformation("Welcome user " + user.UserName + " !");
+
+                            if (Singleton.Instance.currentUserId >= 1)
+                            {
+                                user = context.Users.FirstOrDefault(u => u.UserId == Singleton.Instance.currentUserId);
+                                Logger.OutputInformation("Welcome user " + user.UserName + " !");
+                            }
                             break;
 
                         case 'E':
@@ -137,7 +141,7 @@ namespace BookListDB
                             Logger.OutputInformation("Page (D)own");
                             Logger.OutputInformation("Page (U)p");
                             Logger.OutputInformation("(+) Line Up");
-                            Logger.OutputInformation("(-) Line Up");
+                            Logger.OutputInformation("(-) Line Down");
                             Logger.OutputInformation("(H)ome");
                             Logger.OutputInformation("e(N)d");
                             Logger.OutputInformation("(O)rder");

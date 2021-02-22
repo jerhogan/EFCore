@@ -209,7 +209,8 @@ namespace BookListDB
 
         }
         private static int AddBook(BookListContext context, string search_string,
-                                   string user_string, string book_type_string, bool read, string tagValue)
+                                   string user_string, string book_type_string, 
+                                   bool read, string tagValue)
         {
             int bookId;
             string[] tagValues;

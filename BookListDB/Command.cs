@@ -367,23 +367,24 @@ namespace BookListDB
 	}
 	public class CreateBookCommand : Command
 	{
-		public CreateBookCommand (string query, string user, int bookTypeRowNo, bool read, 
+		public CreateBookCommand (string query, string user, string bookTypeString, int shoppingListNo, bool read, 
 			                      string tagValues)
         {
 			this.query = query;
 			userName = user;
-			this.bookTypeRowNo = bookTypeRowNo;
+			bookType = bookTypeString;
+			this.shoppingListNo = shoppingListNo;
 			this.read = read;
 			this.tagValues = tagValues;
         }
 		override public bool Apply()
 		{
-			Commands.screens.CreateBook(query, userName, bookTypeRowNo, read, tagValues);
+			Commands.screens.CreateBook(query, userName, bookType, shoppingListNo, read, tagValues);
 			return (true);
         }
 		override public string Display()
 		{
-			return ("Command CreateBook(" + query + ", " + userName + ", " + bookType +
+			return ("Command CreateBook(" + query + ", " + userName + ", " + bookType + ", " + shoppingListNo + 
 				    ", " + read + ", " + tagValues + ")");
 		}
 	}

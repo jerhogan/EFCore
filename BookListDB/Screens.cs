@@ -92,9 +92,15 @@ namespace BookListDB
             int prevBottomBookId;
 
             var prevTopIndex = screen[currentScreensId].topScreenId;
-            prevTopBookId = screen[currentScreensId].books[prevTopIndex].BookId;
+            if (prevTopIndex == -1)
+                prevTopBookId = -1;
+            else
+                prevTopBookId = screen[currentScreensId].books[prevTopIndex].BookId;
             var prevBottomIndex = screen[currentScreensId].bottomScreenId;
-            prevBottomBookId = screen[currentScreensId].books[prevBottomIndex].BookId;
+            if (prevBottomIndex == -1)
+                prevBottomBookId = -1;
+            else
+                prevBottomBookId = screen[currentScreensId].books[prevBottomIndex].BookId;
 
             AddScreen(cmd);
             screen[currentScreensId].Order(field, order, prevTopBookId, prevBottomBookId);
@@ -120,9 +126,9 @@ namespace BookListDB
         {
             screen[currentScreensId].DisplayBook(bookId);
         }
-        public int CreateBook(string query, string user, int bookTypeRowNo, bool read, string tagValues)
+        public int CreateBook(string query, string user, string bookType, int shoppingListNo, bool read, string tagValues)
         {
-            return (screen[currentScreensId].CreateBook(query, user, bookTypeRowNo, read, tagValues));
+            return (screen[currentScreensId].CreateBook(query, user, bookType, shoppingListNo, read, tagValues));
         }
         public void DeleteBook(int bookId)
         {
